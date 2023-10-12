@@ -447,7 +447,7 @@ if SERVER then
             curEnemiesOnField = curEnemiesOnField + 1
 
             --Make NPC's seek players at all times
-            if IsValid(npc.targetedPlayer) then npc.targetedPlayer = table.Random(player.GetAll()) end
+            if IsValid(npc.targetedPlayer) or !npc.targetedPlayer:Alive() then npc.targetedPlayer = table.Random(player.GetAll()) end
             npc:UpdateEnemyMemory( npc.targetedPlayer, npc.targetedPlayer:GetPos() )
         end
 
