@@ -30,7 +30,7 @@ if SERVER then
     --2 = info_nodes
     --3 = playerspawns
     --4 = wall climbers
-    function ParseFile()
+    local function getMapNodes()
         if foundain then
             validMap = false
             return
@@ -91,7 +91,7 @@ if SERVER then
     end
 
     hook.Add("Initialize", "raids_load_map_nodes", function()
-        ParseFile()
+        getMapNodes()
         RAIDS.RAIDS_NODES_DISTANCE_MULT = math.Clamp(math.Remap(table.Count(RAIDS.RAIDS_MAP_NODES), 100, 500, 1, 2), 1, 2)
     end)
 
@@ -155,7 +155,7 @@ if SERVER then
     local function checkIfMapJustBuiltNodes()
         if table.IsEmpty(RAIDS.RAIDS_MAP_NODES) then 
             print("RAIDS: Fetching nodes, nodes table is empty. The map most likely loaded for the first time and just built nodes so we couldn't get them at launch.")
-            ParseFile()
+            getMapNodes()
         end
     end
 
