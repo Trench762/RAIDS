@@ -8,94 +8,92 @@ if SERVER then
     ---------------------------------------------------------
     ------------------ PARSE NODE GRAPH ---------------------
     ---------------------------------------------------------
-    do
-        -- Taken from node graph addon
-        local SIZEOF_INT = 4
-        local SIZEOF_SHORT = 2 
-        local AINET_VERSION_NUMBER = 37
-        local function toUShort(b)
-            local i = {string.byte(b,1,SIZEOF_SHORT)}
-            return i[1] +i[2] *256
-        end
-        local function toInt(b)
-            local i = {string.byte(b,1,SIZEOF_INT)}
-            i = i[1] +i[2] *256 +i[3] *65536 +i[4] *16777216
-            if(i > 2147483647) then return i -4294967296 end
-            return i
-        end
-        local function ReadInt(f) return toInt(f:Read(SIZEOF_INT)) end
-        local function ReadUShort(f) return toUShort(f:Read(SIZEOF_SHORT)) end
-
-        --Types (.type):
-        --1 = ?
-        --2 = info_nodes
-        --3 = playerspawns
-        --4 = wall climbers
-        function ParseFile()
-            if foundain then
-                validMap = false
-                return
-            end
-
-            f = file.Open("maps/graphs/"..game.GetMap()..".ain","rb","GAME")
-            if(!f) then
-                validMap = false
-                return
-            end
-
-            found_ain = true
-            local ainet_ver = ReadInt(f)
-            local map_ver = ReadInt(f)
-            if(ainet_ver != AINET_VERSION_NUMBER) then
-                MsgN("Unknown graph file")
-                validMap = false
-                return
-            end
-
-            local numNodes = ReadInt(f)
-            if(numNodes < 0) then
-                MsgN("Graph file has an unexpected amount of nodes")
-                validMap = false
-                return
-            end
-
-            for i = 1,numNodes do
-                local v = Vector(f:ReadFloat(),f:ReadFloat(),f:ReadFloat())
-                local yaw = f:ReadFloat()
-                local flOffsets = {}
-                for i = 1,NUM_HULLS do
-                    flOffsets[i] = f:ReadFloat() 
-                end
-                local nodetype = f:ReadByte()
-                local nodeinfo = ReadUShort(f)
-                local zone = f:ReadShort()
-
-                if nodetype == 4 then
-                    continue
-                end
-                
-                local node = {
-                    pos = v,
-                    yaw = yaw,
-                    offset = flOffsets,
-                    type = nodetype,
-                    info = nodeinfo,
-                    zone = zone,
-                    neighbor = {},
-                    numneighbors = 0,
-                    link = {},
-                    numlinks = 0
-                }
-
-                table.insert(RAIDS.RAIDS_MAP_NODES,node)
-            end
-        end
-
-        hook.Add("Initialize", "raids_load_map_nodes", function()
-            ParseFile()
-            RAIDS.RAIDS_NODES_DISTANCE_MULT = math.Clamp(math.Remap(table.Count(RAIDS.RAIDS_MAP_NODES), 100, 500, 1, 2), 1, 2)
-        end)
+    -- Taken from node graph addon
+    local SIZEOF_INT = 4
+    local SIZEOF_SHORT = 2 
+    local AINET_VERSION_NUMBER = 37
+    local function toUShort(b)
+        local i = {string.byte(b,1,SIZEOF_SHORT)}
+        return i[1] +i[2] *256
     end
+    local function toInt(b)
+        local i = {string.byte(b,1,SIZEOF_INT)}
+        i = i[1] +i[2] *256 +i[3] *65536 +i[4] *16777216
+        if(i > 2147483647) then return i -4294967296 end
+        return i
+    end
+    local function ReadInt(f) return toInt(f:Read(SIZEOF_INT)) end
+    local function ReadUShort(f) return toUShort(f:Read(SIZEOF_SHORT)) end
+
+    --Types (.type):
+    --1 = ?
+    --2 = info_nodes
+    --3 = playerspawns
+    --4 = wall climbers
+    function ParseFile()
+        if foundain then
+            validMap = false
+            return
+        end
+
+        f = file.Open("maps/graphs/"..game.GetMap()..".ain","rb","GAME")
+        if(!f) then
+            validMap = false
+            return
+        end
+
+        found_ain = true
+        local ainet_ver = ReadInt(f)
+        local map_ver = ReadInt(f)
+        if(ainet_ver != AINET_VERSION_NUMBER) then
+            MsgN("Unknown graph file")
+            validMap = false
+            return
+        end
+
+        local numNodes = ReadInt(f)
+        if(numNodes < 0) then
+            MsgN("Graph file has an unexpected amount of nodes")
+            validMap = false
+            return
+        end
+
+        for i = 1,numNodes do
+            local v = Vector(f:ReadFloat(),f:ReadFloat(),f:ReadFloat())
+            local yaw = f:ReadFloat()
+            local flOffsets = {}
+            for i = 1,NUM_HULLS do
+                flOffsets[i] = f:ReadFloat() 
+            end
+            local nodetype = f:ReadByte()
+            local nodeinfo = ReadUShort(f)
+            local zone = f:ReadShort()
+
+            if nodetype == 4 then
+                continue
+            end
+            
+            local node = {
+                pos = v,
+                yaw = yaw,
+                offset = flOffsets,
+                type = nodetype,
+                info = nodeinfo,
+                zone = zone,
+                neighbor = {},
+                numneighbors = 0,
+                link = {},
+                numlinks = 0
+            }
+
+            table.insert(RAIDS.RAIDS_MAP_NODES,node)
+        end
+    end
+
+    hook.Add("Initialize", "raids_load_map_nodes", function()
+        ParseFile()
+        RAIDS.RAIDS_NODES_DISTANCE_MULT = math.Clamp(math.Remap(table.Count(RAIDS.RAIDS_MAP_NODES), 100, 500, 1, 2), 1, 2)
+    end)
 
     ---------------------------------------------------------
     ---------------------- GENERAL --------------------------
@@ -153,6 +151,13 @@ if SERVER then
         "models/Humans/Group03/male_08.mdl",
         "models/Humans/Group03/male_09.mdl",
     }
+
+    local function checkIfMapJustBuiltNodes()
+        if table.IsEmpty(RAIDS.RAIDS_MAP_NODES) then 
+            print("RAIDS: Fetching nodes, nodes table is empty. The map most likely loaded for the first time and just built nodes so we couldn't get them at launch.")
+            ParseFile()
+        end
+    end
 
     local function countNearbyEnemies(pos, radius)
         local entsInRadius = ents.FindInSphere( pos, radius )
@@ -334,17 +339,23 @@ if SERVER then
     concommand.Add("raids_server_spawn_combine", function(ply, cmd, args, argStr)
         if !ply:IsAdmin() then return end
 
+        checkIfMapJustBuiltNodes()
+
         raidSpawnNPCs("npc_combine_s", ply, tonumber(args[1]))
     end) 
 
     concommand.Add("raids_server_spawn_rebels", function(ply, cmd, args, argStr)
         if !ply:IsAdmin() then return end
-        
+
+        checkIfMapJustBuiltNodes()
+
         raidSpawnNPCs("npc_citizen", ply, tonumber(args[1]))
     end) 
 
     concommand.Add("raids_server_spawn_zombies", function(ply, cmd, args, argStr)
         if !ply:IsAdmin() then return end
+
+        checkIfMapJustBuiltNodes()
         
         raidSpawnNPCs("npc_zombie", ply, tonumber(args[1]))
     end) 
@@ -480,6 +491,8 @@ if SERVER then
             return 
         end
 
+        checkIfMapJustBuiltNodes()
+
         initiateAssault("npc_combine_s", tonumber(args[1]))
     end) 
 
@@ -490,6 +503,8 @@ if SERVER then
             return 
         end
 
+        checkIfMapJustBuiltNodes()
+
         initiateAssault("npc_citizen", tonumber(args[1]))
     end)
 
@@ -499,6 +514,8 @@ if SERVER then
             warnAssaultInProgress(ply)
             return 
         end
+
+        checkIfMapJustBuiltNodes()
 
         initiateAssault("npc_zombie", tonumber(args[1]))
     end)
