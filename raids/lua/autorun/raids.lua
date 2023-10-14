@@ -382,7 +382,7 @@ if SERVER then
         net.WriteString(initialArenaMessage .. tostring(RAIDS.curMaxEnemiesAllowed))
         net.Broadcast()
 
-        timer.Create("raids_increase_arena_mode_escalation", 10, -1, function()
+        timer.Create("raids_increase_arena_mode_escalation", 90, -1, function()
             RAIDS.curMaxEnemiesAllowed = RAIDS.curMaxEnemiesAllowed + 1
             net.Start("raids_send_arena_escalation_update")
             net.WriteString(arenaUpdateMessage .. tostring(RAIDS.curMaxEnemiesAllowed))
