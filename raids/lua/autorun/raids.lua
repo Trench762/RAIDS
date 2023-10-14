@@ -170,7 +170,7 @@ if SERVER then
         return count
     end
 
-    local function setUpEnemy(class, pos, offsetNodePos, ply)
+    local function setUpEnemy(class, pos, offsetNodePos, ply)        
         if class == "npc_zombie" then 
             class = table.Random(zombies) 
         end
@@ -182,8 +182,7 @@ if SERVER then
         npc.targetedPlayer = table.Random(player.GetAll())
 
         if class == "npc_combine_s" then
-            npc:Give(table.Random(npc_combine_s_weapons))
-            
+            npc:Give(table.Random(npc_combine_s_weapons))      
             if npc:GetKeyValues().NumGrenades > 0 then return end -- non-invasive to other addons that want to do anything with their number of nades. But by default combine get no nades on spawn.
             npc:SetKeyValue( "NumGrenades", math.random(1,2) )
         elseif class == "npc_metropolice" then
@@ -191,19 +190,12 @@ if SERVER then
         elseif class == "npc_citizen" then
             npc:Give(table.Random(npc_citizen_weapons))
             npc:SetModel(table.Random(npc_citizen_models))
-
             for _, ply in pairs(player.GetAll()) do
                 npc:AddEntityRelationship( ply, D_HT, 99 )
             end
         end
 
-        timer.Simple(0.1, function()
-            if RAIDS.disableArena then return end
-            if !IsValid(npc) then return end
-            npc:SetLastPosition( npc.targetedPlayer:GetPos() )
-            npc:SetSchedule( SCHED_FORCED_GO_RUN )
-        end)
-        
+        -- The rest of this function's code only applies to NPC's spawned by raids_spawn_* commands, not assault/arena mode.        
         timer.Simple(0.1, function()
             if !IsValid(offsetNodePos) then return end
             if !IsValid(npc) then return end
@@ -457,8 +449,16 @@ if SERVER then
             curEnemiesOnField = curEnemiesOnField + 1
 
             --Make NPC's seek players at all times
-            if IsValid(npc.targetedPlayer) or !npc.targetedPlayer:Alive() then npc.targetedPlayer = table.Random(player.GetAll()) end
+            if IsValid(npc.targetedPlayer) or !npc.targetedPlayer:Alive() then 
+                npc.targetedPlayer = table.Random(player.GetAll()) 
+            end
+            
             npc:UpdateEnemyMemory( npc.targetedPlayer, npc.targetedPlayer:GetPos() )
+            npc:SetTarget(npc.targetedPlayer)
+
+            if npc:GetCurrentSchedule() != SCHED_TARGET_CHASE then
+                npc:SetSchedule(SCHED_TARGET_CHASE)
+            end
         end
 
         if curEnemiesOnField < RAIDS.curMaxEnemiesAllowed then
