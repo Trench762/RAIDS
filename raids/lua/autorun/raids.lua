@@ -382,7 +382,7 @@ if SERVER then
         net.WriteString(initialArenaMessage .. tostring(RAIDS.curMaxEnemiesAllowed))
         net.Broadcast()
 
-        timer.Create("raids_increase_arena_mode_escalation", 90, -1, function()
+        timer.Create("raids_increase_arena_mode_escalation", 10, -1, function()
             RAIDS.curMaxEnemiesAllowed = RAIDS.curMaxEnemiesAllowed + 1
             net.Start("raids_send_arena_escalation_update")
             net.WriteString(arenaUpdateMessage .. tostring(RAIDS.curMaxEnemiesAllowed))
@@ -520,6 +520,7 @@ if SERVER then
         initiateAssault("npc_zombie", tonumber(args[1]))
     end)
 
+    util.AddNetworkString("raids_stopped_assault")
     concommand.Add("raids_server_stop_assault", function(ply, cmd, args, argStr)
         if !ply:IsAdmin() then return end
 
@@ -527,6 +528,13 @@ if SERVER then
             if !npc.raidsNPC then continue end
             npc:Remove()
         end
+
+        if timer.Exists("raids_increase_arena_mode_escalation") then 
+            timer.Remove("raids_increase_arena_mode_escalation") 
+        end
+
+        net.Start("raids_stopped_assault")
+        net.Broadcast()
         
         RAIDS.disableArena = true
     end)
@@ -577,6 +585,10 @@ if CLIENT then
 
     net.Receive("raids_send_arena_escalation_update", function()
         chat.AddText( Color(148,252,52), "RAIDS: " .. net.ReadString())
+    end)
+
+    net.Receive("raids_stopped_assault", function()
+        chat.AddText( Color(148,252,52), "RAIDS: " .. "Assault stopped!")
     end)
 end
 
