@@ -222,10 +222,10 @@ if SERVER then
         end)
     end
 
-    util.AddNetworkString("raids send raid update")
+    util.AddNetworkString("raids_send_raid_update")
     util.AddNetworkString("raids_raid_warn_player")
     local function report(ply, count, limit)
-        net.Start("raids_send_arena_escalation_update")
+        net.Start("raids_send_raid_update")
         net.WriteString("Spawned " .. count .. " NPC's!")
         net.Broadcast()
         
@@ -443,7 +443,6 @@ if SERVER then
         return spawn
     end
 
-    local nextScheduleUpdate = CurTime()
     hook.Add("Think", "RAIDS Arena Mode Think", function()
         if RAIDS.disableArena then return end
         if nextThink > CurTime() then return end
@@ -589,6 +588,10 @@ if CLIENT then
 
     net.Receive("raids_stopped_assault", function()
         chat.AddText( Color(148,252,52), "RAIDS: " .. "Assault stopped!")
+    end)
+
+    net.Receive("raids_send_raid_update", function()
+        chat.AddText( Color(148,252,52), "RAIDS: " .. net.ReadString())
     end)
 end
 
